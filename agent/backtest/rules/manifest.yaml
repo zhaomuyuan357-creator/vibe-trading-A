@@ -1,0 +1,71 @@
+ashare_rulebook:
+  version: 0.2.0
+  status: implementation-baseline
+  last_reviewed: 2026-07-05
+  scope:
+    - A-share cash equity backtesting
+    - board price-limit resolution
+    - lot size and tick size
+    - T+1 and no-short execution checks
+    - sell-side stamp-tax date switch
+    - auction and continuous trading phase classification
+    - programmatic trading rate/cancel/notional guardrails
+  legal_sources:
+    - title: Securities Law of the People's Republic of China
+      layer: foundational_law
+      applies_to:
+        - compliance_boundary
+        - prohibited_conduct
+    - title: CSRC Measures for Programmatic Trading in the Securities Market (Trial)
+      document_no: CSRC Announcement [2024] No. 8
+      effective_from: 2024-10-08
+      layer: programmatic_trading
+      applies_to:
+        - strategy_identification
+        - order_rate_controls
+        - cancellation_controls
+        - system_safety
+        - audit_logs
+    - title: Shanghai Stock Exchange Trading Rules (2026 Revision)
+      document_no: SSE [2026] No. 41
+      effective_from: 2026-07-06
+      layer: exchange_trading_rules
+      applies_to:
+        - tick_size
+        - trading_sessions
+        - order_handling
+        - after_hours_fixed_price
+    - title: Shenzhen Stock Exchange Trading Rules (2026 Revision)
+      document_no: SZSE [2026] No. 551
+      effective_from: 2026-07-06
+      layer: exchange_trading_rules
+      applies_to:
+        - tick_size
+        - trading_sessions
+        - order_handling
+        - after_hours_fixed_price
+    - title: Beijing Stock Exchange Trading Rules
+      document_no: BSE Announcement [2026] No. 17
+      effective_from: 2026-07-06
+      layer: exchange_trading_rules
+      applies_to:
+        - price_limit
+        - tick_size
+        - trading_sessions
+  implementation_notes:
+    - Current code uses point-in-time bar metadata when available for ST, suspension, and no-price-limit IPO days.
+    - Historical backtests should pass richer security-status metadata before relying on ST or IPO handling.
+    - Programmatic trading throttles and live broker order gates are tracked for later live-rule integration.
+  programmatic_controls:
+    implementation: backtest.rules.programmatic.ProgrammaticRiskRuleBook
+    controls:
+      - required audit fields for strategy/account/order provenance
+      - per-strategy per-account order rate per second
+      - per-strategy per-account order rate per minute
+      - cancellation ratio monitor with minimum sample size
+      - single order notional cap
+      - strategy daily notional cap
+    next_integration_targets:
+      - src.live.order_guard.LiveOrderGuardTool
+      - broker connector write-tool wrappers
+      - persisted programmatic event ledger

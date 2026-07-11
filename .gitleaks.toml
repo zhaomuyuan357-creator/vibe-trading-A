@@ -1,0 +1,44 @@
+title = "vibe-trading-A gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow documented placeholders and non-secret research task ids"
+regexes = [
+  '''sk-or-v1-\.\.\.''',
+  '''sk-or-v1-your-key-here''',
+  '''sk-xxx''',
+  '''gsk_xxx''',
+  '''your-[a-z0-9-]+-api-key''',
+  '''your-[a-z0-9-]+-token''',
+  '''change-me-access-code''',
+  '''task-performance-attribution''',
+  '''task-microstructure-review''',
+]
+paths = [
+  '''\.gitleaks\.toml''',
+  '''agent/src/api/settings_routes.py''',
+  '''agent/cli/_legacy.py''',
+  '''README.md''',
+  '''OPEN_SOURCE_CHECKLIST.md''',
+  '''scripts/security-scan\.ps1''',
+]
+
+[[rules]]
+id = "local-windows-user-path"
+description = "Detect local Windows user paths that should not be published"
+regex = '''C:\\Users\\[A-Za-z0-9._-]+'''
+tags = ["privacy", "local-path"]
+
+[[rules]]
+id = "wechat-temp-path"
+description = "Detect WeChat temporary file paths"
+regex = '''(xwechat_files|wxid_[A-Za-z0-9_]+|RWTemp|AppData\\Local\\Temp)'''
+tags = ["privacy", "local-path"]
+
+[[rules]]
+id = "private-upstream-repo"
+description = "Detect private upstream repository references"
+regex = '''(zhaomuyuan357-creator/Vibe-Trading|Vibe-Trading\.git)'''
+tags = ["privacy", "repository"]
