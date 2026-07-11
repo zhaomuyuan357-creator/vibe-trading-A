@@ -60,7 +60,7 @@ def _run_one(bench: dict) -> dict:
     per-alpha rows for downstream tooling, both of which the CLI driver wants
     but the API route does not.
     """
-    key = bench["key"]
+    key = bench["benchmark_id"]
     zoo = bench["zoo"]
     universe = bench["universe"]
     period = bench["period"]
@@ -151,14 +151,14 @@ def main() -> int:
 
     for bench in BENCHES:
         if bench["universe"] == "csi300" and not tushare_ok:
-            summary["zoos"][bench["key"]] = {
+            summary["zoos"][bench["benchmark_id"]] = {
                 **{k: bench[k] for k in ("zoo", "universe", "period")},
                 "status": "skipped",
                 "error": "TUSHARE_TOKEN not set",
             }
             continue
         entry = _run_one(bench)
-        summary["zoos"][bench["key"]] = entry
+        summary["zoos"][bench["benchmark_id"]] = entry
 
     out = REPORTS_DIR / "bench_summary.json"
     out.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
