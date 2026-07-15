@@ -551,7 +551,7 @@ export function Settings() {
           <h2 className="text-lg font-semibold tracking-tight">{"智能体模型"}</h2>
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">常用</span>
         </div>
-        <p className="max-w-3xl text-sm text-muted-foreground">{"配置当前账号调用的大模型。每个登录用户需要填写自己的 API，不会默认使用管理员或其他用户的密钥。"}</p>
+        <p className="max-w-3xl text-sm text-muted-foreground">{"公开版默认使用本地 Ollama 模型，不需要云 API 密钥；如需云模型，请在私有分支中自行扩展。"}</p>
       </div>
 
       <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
@@ -573,7 +573,7 @@ export function Settings() {
                   <option key={provider.name} value={provider.name}>{provider.label}</option>
                 ))}
               </select>
-              <span className={hintClass}>{"切换提供商会自动带出推荐模型和接口地址。"}</span>
+              <span className={hintClass}>{"公开版仅保留本地模型入口，避免误用作者或服务器上的付费 API 额度。"}</span>
             </label>
 
             <label className="grid gap-2">
@@ -611,7 +611,7 @@ export function Settings() {
 
             <label className="grid gap-2">
               <span className={labelClass}>
-                {selectedProvider?.auth_type === "oauth" ? "OAuth 登录" : "模型 API 密钥"}
+                {selectedProvider?.api_key_required ? "模型 API 密钥" : "本地模型无需密钥"}
               </span>
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

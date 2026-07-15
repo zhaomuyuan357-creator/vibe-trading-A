@@ -195,6 +195,7 @@ class TestMinimaxTemperature:
             "MINIMAX_BASE_URL": "https://api.minimax.io/v1",
             "LANGCHAIN_MODEL_NAME": "MiniMax-M3",
             "LANGCHAIN_TEMPERATURE": "0.0",
+            "VIBE_TRADING_PUBLIC_LOCAL_ONLY": "0",
         }
         with patch.dict(os.environ, env, clear=True):
             with patch.object(llm_mod, "ChatOpenAIWithReasoning", _FakeChatOpenAI):
@@ -220,6 +221,7 @@ class TestMinimaxTemperature:
             "MINIMAX_BASE_URL": "https://api.minimax.io/v1",
             "LANGCHAIN_MODEL_NAME": "MiniMax-M3",
             "LANGCHAIN_TEMPERATURE": "0.7",
+            "VIBE_TRADING_PUBLIC_LOCAL_ONLY": "0",
         }
         with patch.dict(os.environ, env, clear=True):
             with patch.object(llm_mod, "ChatOpenAIWithReasoning", _FakeChatOpenAI):
@@ -235,6 +237,7 @@ class TestReasoningEffortPassthrough:
     def _capture(self, env: dict[str, str]) -> dict:
         import src.providers.llm as llm_mod
         llm_mod._dotenv_loaded = True
+        env = {**env, "VIBE_TRADING_PUBLIC_LOCAL_ONLY": "0"}
 
         captured: dict = {}
 
@@ -283,12 +286,34 @@ class TestUserScopedSettingsIsolation:
         import src.providers.llm as llm_mod
 
         llm_mod._dotenv_loaded = True
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "server-paid-key"}, clear=True):
+        with patch.dict(
+            os.environ,
+            {
+                "OPENROUTER_API_KEY": "server-paid-key",
+                "VIBE_TRADING_PUBLIC_LOCAL_ONLY": "0",
+            },
+            clear=True,
+        ):
             with pytest.raises(RuntimeError, match="not configured for this user"):
                 build_llm(
                     settings={
                         "LANGCHAIN_PROVIDER": "openrouter",
                         "LANGCHAIN_MODEL_NAME": "deepseek/deepseek-v4-pro",
+                        "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
+                    }
+                )
+
+    def test_public_build_rejects_cloud_provider_settings(self) -> None:
+        import src.providers.llm as llm_mod
+
+        llm_mod._dotenv_loaded = True
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(RuntimeError, match="only supports local Ollama"):
+                build_llm(
+                    settings={
+                        "LANGCHAIN_PROVIDER": "openrouter",
+                        "LANGCHAIN_MODEL_NAME": "deepseek/deepseek-v4-pro",
+                        "OPENROUTER_API_KEY": "user-key",
                         "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
                     }
                 )

@@ -221,8 +221,8 @@ def _ensure_user_llm_settings_table() -> None:
 def _project_defaults_without_llm_secret() -> Dict[str, str]:
     """Return model defaults but never copy project/admin API keys to a product user."""
     values = dict(_read_settings_env_values())
-    provider_name = values.get("LANGCHAIN_PROVIDER", "openai").strip().lower()
-    provider = LLM_PROVIDER_BY_NAME.get(provider_name, LLM_PROVIDER_BY_NAME["openai"])
+    provider_name = values.get("LANGCHAIN_PROVIDER", "ollama").strip().lower()
+    provider = LLM_PROVIDER_BY_NAME.get(provider_name, LLM_PROVIDER_BY_NAME["ollama"])
     if provider.api_key_env:
         values.pop(provider.api_key_env, None)
     values.pop("OPENAI_API_KEY", None)
@@ -323,8 +323,8 @@ def _build_llm_settings_response(
     env_values = values if values is not None else (
         get_user_llm_settings_values(user.id) if user is not None else _read_settings_env_values()
     )
-    provider_name = env_values.get("LANGCHAIN_PROVIDER", "openai").strip().lower()
-    provider = LLM_PROVIDER_BY_NAME.get(provider_name, LLM_PROVIDER_BY_NAME["openai"])
+    provider_name = env_values.get("LANGCHAIN_PROVIDER", "ollama").strip().lower()
+    provider = LLM_PROVIDER_BY_NAME.get(provider_name, LLM_PROVIDER_BY_NAME["ollama"])
     api_key = env_values.get(provider.api_key_env or "", "") if provider.api_key_env else ""
     api_key_configured = host._is_configured_secret(api_key, LLM_API_KEY_PLACEHOLDERS)
     api_key_hint = None

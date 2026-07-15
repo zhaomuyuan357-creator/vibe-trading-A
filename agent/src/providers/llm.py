@@ -463,6 +463,12 @@ def _normalize_ollama_base_url(base_url: str) -> str:
     return f"{url}/v1"
 
 
+def _public_local_only_enabled() -> bool:
+    """Return whether the public build should reject cloud LLM providers."""
+    value = os.getenv("VIBE_TRADING_PUBLIC_LOCAL_ONLY", "1").strip().lower()
+    return value not in {"0", "false", "no", "off"}
+
+
 def _sync_provider_env() -> None:
     """Map provider-specific env vars to OPENAI_* for ChatOpenAI.
 
@@ -471,7 +477,7 @@ def _sync_provider_env() -> None:
     api_key_env=None means no key required (e.g. Ollama local).
     """
     _ensure_dotenv()
-    provider = os.getenv("LANGCHAIN_PROVIDER", "openai").lower()
+    provider = os.getenv("LANGCHAIN_PROVIDER", "ollama").lower()
 
     if provider in {"openai-codex", "openai_codex"}:
         codex_url = os.getenv("OPENAI_CODEX_BASE_URL", "https://chatgpt.com/backend-api/codex/responses")
@@ -513,7 +519,7 @@ def provider_diagnostics() -> dict[str, Any]:
         Redacted provider/model/package/env/proxy/capability details.
     """
     _sync_provider_env()
-    provider = os.getenv("LANGCHAIN_PROVIDER", "openai").strip().lower()
+    provider = os.getenv("LANGCHAIN_PROVIDER", "ollama").strip().lower()
     model = os.getenv("LANGCHAIN_MODEL_NAME", "").strip()
     caps = get_provider_capabilities(provider, model)
     key_env, base_env = provider_env_names(provider, model)
@@ -593,7 +599,12 @@ def build_llm(
     if not name:
         raise RuntimeError("LANGCHAIN_MODEL_NAME is not set")
     temperature = float(_setting(settings, "LANGCHAIN_TEMPERATURE", "0.0"))
-    provider = _setting(settings, "LANGCHAIN_PROVIDER", "openai").lower()
+    provider = _setting(settings, "LANGCHAIN_PROVIDER", "ollama").lower()
+    if _public_local_only_enabled() and provider != "ollama":
+        raise RuntimeError(
+            "Public open-source build only supports local Ollama by default. "
+            "Use the private/full build if you need cloud model providers."
+        )
     caps = get_provider_capabilities(provider, name)
     if provider in {"openai-codex", "openai_codex"}:
         from src.providers.openai_codex import OpenAICodexLLM

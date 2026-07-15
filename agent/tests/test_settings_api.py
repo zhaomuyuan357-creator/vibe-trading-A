@@ -21,10 +21,9 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     env_example.write_text(
         "\n".join(
             [
-                "LANGCHAIN_PROVIDER=openrouter",
-                "LANGCHAIN_MODEL_NAME=deepseek/deepseek-v4-pro",
-                "OPENROUTER_BASE_URL=https://openrouter.ai/api/v1",
-                "OPENROUTER_API_KEY=your-openrouter-api-key",
+                "LANGCHAIN_PROVIDER=ollama",
+                "LANGCHAIN_MODEL_NAME=qwen2.5:32b",
+                "OLLAMA_BASE_URL=http://localhost:11434",
                 "LANGCHAIN_TEMPERATURE=0.2",
                 "TIMEOUT_SECONDS=90",
                 "MAX_RETRIES=3",
@@ -65,8 +64,8 @@ def test_get_llm_settings_is_side_effect_free_and_hides_placeholders(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["provider"] == "openrouter"
-    assert body["model_name"] == "deepseek/deepseek-v4-pro"
+    assert body["provider"] == "ollama"
+    assert body["model_name"] == "qwen2.5:32b"
     assert body["api_key_configured"] is False
     assert body["api_key_hint"] is None
     assert body["scope"] == "user"
@@ -84,10 +83,10 @@ def test_llm_settings_treat_documented_key_placeholders_as_unconfigured(
     (tmp_path / ".env").write_text(
         "\n".join(
             [
-                "LANGCHAIN_PROVIDER=deepseek",
-                "LANGCHAIN_MODEL_NAME=deepseek-v4-pro",
-                f"DEEPSEEK_API_KEY={placeholder}",
-                "DEEPSEEK_BASE_URL=https://api.deepseek.com/v1",
+                "LANGCHAIN_PROVIDER=ollama",
+                "LANGCHAIN_MODEL_NAME=qwen2.5:32b",
+                "OLLAMA_BASE_URL=http://localhost:11434",
+                f"OPENAI_API_KEY={placeholder}",
             ]
         )
         + "\n",
@@ -111,9 +110,9 @@ def test_update_llm_settings_persists_user_settings(
         "/settings/llm",
         headers=headers,
         json={
-            "provider": "openrouter",
-            "model_name": "deepseek/deepseek-v4-pro",
-            "base_url": "https://openrouter.ai/api/v1",
+            "provider": "ollama",
+            "model_name": "qwen2.5:32b",
+            "base_url": "http://localhost:11434",
             "api_key": "or-secret-value",
             "temperature": 0.1,
             "timeout_seconds": 45,
@@ -124,8 +123,8 @@ def test_update_llm_settings_persists_user_settings(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["provider"] == "openrouter"
-    assert body["api_key_configured"] is True
+    assert body["provider"] == "ollama"
+    assert body["api_key_configured"] is False
     assert body["api_key_hint"] is None
     assert body["scope"] == "user"
     assert body["owner_user_id"]
@@ -135,7 +134,7 @@ def test_update_llm_settings_persists_user_settings(
     assert not (tmp_path / ".env").exists()
     second_response = client.get("/settings/llm", headers=headers)
     assert second_response.status_code == 200
-    assert second_response.json()["api_key_configured"] is True
+    assert second_response.json()["api_key_configured"] is False
     assert "or-secret-value" not in second_response.text
 
 
@@ -163,8 +162,9 @@ def test_settings_response_never_exposes_configured_secret_hints(
     (tmp_path / ".env").write_text(
         "\n".join(
             [
-                "LANGCHAIN_PROVIDER=openrouter",
-                "OPENROUTER_API_KEY=or-secret-private-value",
+                "LANGCHAIN_PROVIDER=ollama",
+                "OLLAMA_BASE_URL=http://localhost:11434",
+                "OPENAI_API_KEY=or-secret-private-value",
                 "TUSHARE_TOKEN=ts-secret-private-token",
             ]
         )
@@ -177,9 +177,9 @@ def test_settings_response_never_exposes_configured_secret_hints(
         "/settings/llm",
         headers=headers,
         json={
-            "provider": "openrouter",
-            "model_name": "deepseek/deepseek-v4-pro",
-            "base_url": "https://openrouter.ai/api/v1",
+            "provider": "ollama",
+            "model_name": "qwen2.5:32b",
+            "base_url": "http://localhost:11434",
             "api_key": "or-secret-private-value",
             "temperature": 0.1,
             "timeout_seconds": 45,
@@ -202,7 +202,7 @@ def test_settings_response_never_exposes_configured_secret_hints(
     assert data_response.status_code == 200
     llm_body = llm_response.json()
     data_body = data_response.json()
-    assert llm_body["api_key_configured"] is True
+    assert llm_body["api_key_configured"] is False
     assert llm_body["api_key_hint"] is None
     assert data_body["tushare_token_configured"] is True
     assert data_body["tushare_token_hint"] is None
@@ -228,7 +228,7 @@ def test_settings_reads_reject_remote_dev_mode_clients(
         + "\n",
         encoding="utf-8",
     )
-    env_example.write_text("LANGCHAIN_PROVIDER=openai\n", encoding="utf-8")
+    env_example.write_text("LANGCHAIN_PROVIDER=ollama\n", encoding="utf-8")
     monkeypatch.setattr(api_server, "ENV_PATH", env_path)
     monkeypatch.setattr(api_server, "ENV_EXAMPLE_PATH", env_example)
     monkeypatch.delenv("API_AUTH_KEY", raising=False)
@@ -258,7 +258,7 @@ def test_settings_reads_allow_loopback_without_bearer_even_when_api_auth_key_con
         + "\n",
         encoding="utf-8",
     )
-    env_example.write_text("LANGCHAIN_PROVIDER=openai\n", encoding="utf-8")
+    env_example.write_text("LANGCHAIN_PROVIDER=ollama\n", encoding="utf-8")
     monkeypatch.setattr(api_server, "ENV_PATH", env_path)
     monkeypatch.setattr(api_server, "ENV_EXAMPLE_PATH", env_example)
     monkeypatch.setenv("API_AUTH_KEY", "settings-secret")
@@ -309,7 +309,7 @@ def test_settings_writes_require_product_login(
 ) -> None:
     env_example = tmp_path / ".env.example"
     env_path = tmp_path / ".env"
-    env_example.write_text("LANGCHAIN_PROVIDER=openai\n", encoding="utf-8")
+    env_example.write_text("LANGCHAIN_PROVIDER=ollama\n", encoding="utf-8")
     monkeypatch.setattr(api_server, "ENV_PATH", env_path)
     monkeypatch.setattr(api_server, "ENV_EXAMPLE_PATH", env_example)
     monkeypatch.delenv("API_AUTH_KEY", raising=False)
