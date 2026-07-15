@@ -640,6 +640,10 @@ def build_llm(
     base_url = _setting(settings, base_env, "") if settings is not None else ""
     if provider == "ollama" and base_url:
         base_url = _normalize_ollama_base_url(base_url)
+    if settings is not None and key_env is not None and not api_key:
+        raise RuntimeError(
+            f"{key_env} is not configured for this user. Configure your own model API key in Settings."
+        )
     kwargs: dict[str, Any] = {
         "model": name,
         "temperature": temperature,
@@ -652,6 +656,8 @@ def build_llm(
     if settings is not None:
         if api_key:
             kwargs["api_key"] = api_key
+        elif key_env is None:
+            kwargs["api_key"] = "ollama"
         if base_url:
             kwargs["base_url"] = base_url
     if caps.default_headers:

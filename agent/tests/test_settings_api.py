@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 import api_server
 from src.api.auth_routes import get_auth_service
 from src.api.settings_routes import _ensure_user_data_source_table, _ensure_user_llm_settings_table
+from src.security.secret_policy import scrub_server_shared_secrets
 
 
 @pytest.fixture
@@ -320,3 +322,31 @@ def test_settings_writes_require_product_login(
 
     assert response.status_code == 401
     assert not env_path.exists()
+
+
+def test_public_api_startup_scrubs_server_shared_paid_keys(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("VIBE_TRADING_ALLOW_SERVER_SHARED_SECRETS", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "server-paid-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "server-paid-openrouter-key")
+    monkeypatch.setenv("TUSHARE_TOKEN", "server-paid-data-token")
+
+    removed = scrub_server_shared_secrets()
+
+    assert "OPENAI_API_KEY" in removed
+    assert "OPENROUTER_API_KEY" in removed
+    assert "TUSHARE_TOKEN" in removed
+    assert "OPENAI_API_KEY" not in os.environ
+    assert "OPENROUTER_API_KEY" not in os.environ
+    assert "TUSHARE_TOKEN" not in os.environ
+
+
+def test_private_deployments_can_explicitly_allow_server_shared_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("VIBE_TRADING_ALLOW_SERVER_SHARED_SECRETS", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "server-paid-key")
+
+    removed = scrub_server_shared_secrets()
+
+    assert removed == []
+    assert os.environ["OPENAI_API_KEY"] == "server-paid-key"

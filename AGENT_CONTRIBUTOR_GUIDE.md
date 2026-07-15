@@ -43,7 +43,7 @@ is too expensive, and state what was not run.
 Get explicit maintainer or operator approval before running commands that:
 
 - place, cancel, approve, flatten, or otherwise affect broker orders,
-- authorize broker, OAuth, MCP, exchange, payment, wallet, or cloud accounts,
+- authorize broker, OAuth, MCP, exchange, or cloud accounts,
 - write real credentials into `agent/.env`, `~/.vibe-trading/`, token caches, or
   external services,
 - start externally reachable API, MCP, SSE, webhook, or dashboard servers,
@@ -51,7 +51,7 @@ Get explicit maintainer or operator approval before running commands that:
 - rewrite history, force-push shared branches, delete backups, or remove
   persistent run or memory data.
 
-Never run live trading, payment, wallet, contract, or broker-write flows as part
+Never run live trading, contract, or broker-write flows as part
 of routine PR validation.
 
 ## Targeted Test Hints

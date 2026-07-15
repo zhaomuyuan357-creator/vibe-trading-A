@@ -275,3 +275,44 @@ class TestReasoningEffortPassthrough:
         })
         assert captured["extra_body"]["reasoning"]["effort"] == "high"
 
+
+class TestUserScopedSettingsIsolation:
+    """User-scoped LLM settings must not fall back to server environment keys."""
+
+    def test_user_settings_require_own_cloud_provider_key(self) -> None:
+        import src.providers.llm as llm_mod
+
+        llm_mod._dotenv_loaded = True
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "server-paid-key"}, clear=True):
+            with pytest.raises(RuntimeError, match="not configured for this user"):
+                build_llm(
+                    settings={
+                        "LANGCHAIN_PROVIDER": "openrouter",
+                        "LANGCHAIN_MODEL_NAME": "deepseek/deepseek-v4-pro",
+                        "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
+                    }
+                )
+
+    def test_user_ollama_settings_do_not_read_server_openai_key(self) -> None:
+        import src.providers.llm as llm_mod
+
+        llm_mod._dotenv_loaded = True
+        captured: dict[str, object] = {}
+
+        class _FakeChatOpenAI:
+            def __init__(self, **kwargs: object) -> None:
+                captured.update(kwargs)
+
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "server-paid-key"}, clear=True):
+            with patch.object(llm_mod, "ChatOpenAIWithReasoning", _FakeChatOpenAI):
+                build_llm(
+                    settings={
+                        "LANGCHAIN_PROVIDER": "ollama",
+                        "LANGCHAIN_MODEL_NAME": "qwen2.5:32b",
+                        "OLLAMA_BASE_URL": "http://localhost:11434",
+                    }
+                )
+
+        assert captured["api_key"] == "ollama"
+        assert captured["base_url"] == "http://localhost:11434/v1"
+

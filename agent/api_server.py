@@ -624,7 +624,15 @@ from src.api.channels_routes import (  # noqa: E402
 async def _run_startup_preflight() -> None:
     """Run preflight checks on server startup."""
     from src.preflight import run_preflight
+    from src.security.secret_policy import scrub_server_shared_secrets
 
+    removed_secret_envs = scrub_server_shared_secrets()
+    if removed_secret_envs:
+        console.print(
+            "[yellow]Server shared secrets disabled by default; removed "
+            f"{len(removed_secret_envs)} secret env var(s). Set "
+            "VIBE_TRADING_ALLOW_SERVER_SHARED_SECRETS=1 only for private trusted deployments.[/yellow]"
+        )
     run_preflight(console)
     _start_scheduled_research_executor()
     if os.getenv("VIBE_TRADING_CHANNELS_AUTO_START", "").strip().lower() in {"1", "true", "yes"}:
